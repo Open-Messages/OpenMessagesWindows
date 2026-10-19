@@ -1,0 +1,155 @@
+<Window x:Class="OpenMessages.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OpenMessages" Width="480" Height="640" MinWidth="400" MinHeight="460"
+        WindowStartupLocation="CenterScreen" Background="White"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14">
+    <DockPanel>
+        <!-- Error bar -->
+        <Border DockPanel.Dock="Top" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="0,0,0,1" Padding="12,8"
+                Visibility="{Binding Status, Converter={StaticResource Presence}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Dismiss" Margin="8,0,0,0" Padding="8,2" Click="DismissStatus" />
+                <TextBlock Text="{Binding Status}" Foreground="#991B1B" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        <ProgressBar DockPanel.Dock="Top" Height="3" IsIndeterminate="True" BorderThickness="0"
+                     Visibility="{Binding Busy, Converter={StaticResource Presence}}" />
+
+        <Grid>
+            <!-- Firebase config missing -->
+            <StackPanel VerticalAlignment="Center" Margin="32"
+                        Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=MissingConfig}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE713;" />
+                <TextBlock Style="{StaticResource Title}" Text="Firebase isn't configured" />
+                <TextBlock Style="{StaticResource Body}" Text="{Binding ConfigError}" />
+            </StackPanel>
+
+            <!-- Loading -->
+            <ProgressBar Width="160" Height="4" IsIndeterminate="True" VerticalAlignment="Center"
+                         Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=Loading}" />
+
+            <!-- Signed out -->
+            <StackPanel VerticalAlignment="Center" Margin="32"
+                        Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=SignedOut}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE8D7;" Foreground="{StaticResource Accent}" FontSize="52" />
+                <TextBlock Style="{StaticResource Title}" Text="Verification codes from your phone" />
+                <TextBlock Style="{StaticResource Body}"
+                           Text="Sign in with the same Google account you use for OTP sync in Messages on your Android phone." />
+                <Button Style="{StaticResource Primary}" Content="Sign in with Google" HorizontalAlignment="Center"
+                        Command="{Binding SignInCommand}" />
+                <StackPanel Visibility="{Binding Busy, Converter={StaticResource Presence}}" HorizontalAlignment="Center">
+                    <TextBlock Style="{StaticResource Body}" Margin="0,12,0,4" Text="Finish signing in in your browser." />
+                    <Button Content="Cancel" HorizontalAlignment="Center" Command="{Binding CancelSignInCommand}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Signed in, phone has no key yet -->
+            <StackPanel VerticalAlignment="Center" Margin="32"
+                        Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=NoKeyOnAccount}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE8EA;" />
+                <TextBlock Style="{StaticResource Title}" Text="Set up sync on your phone first" />
+                <TextBlock Style="{StaticResource Body}"
+                           Text="In Messages on your Android phone, open Settings › OTP sync, sign in with this account and create a sync key. Then come back here." />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Sign out" Command="{Binding SignOutCommand}" />
+                    <Button Style="{StaticResource Primary}" Content="Check again" Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Needs the sync key -->
+            <StackPanel VerticalAlignment="Center" Margin="32"
+                        Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=NeedsKey}">
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE72E;" />
+                <TextBlock Style="{StaticResource Title}" Text="Enter your sync key" />
+                <TextBlock Style="{StaticResource Body}"
+                           Text="Find it on your phone in Messages › Settings › OTP sync › Show sync key. Codes are decrypted only on this PC." />
+                <PasswordBox x:Name="Passphrase" Width="300" Padding="8,6" FontFamily="Cascadia Mono, Consolas"
+                             KeyDown="PassphraseKeyDown" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                    <Button Content="Sign out" Command="{Binding SignOutCommand}" />
+                    <Button Style="{StaticResource Primary}" Content="Unlock" Click="UnlockClick" IsDefault="True" />
+                </StackPanel>
+                <TextBlock Style="{StaticResource Body}" FontSize="12" Margin="0,10,0,0">
+                    <Run Text="Signed in as" /> <Run Text="{Binding Email, Mode=OneWay}" />
+                </TextBlock>
+            </StackPanel>
+
+            <!-- Codes -->
+            <DockPanel Visibility="{Binding Phase, Converter={StaticResource Phase}, ConverterParameter=Ready}">
+                <Border DockPanel.Dock="Top" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="12,8">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="Refresh" Command="{Binding RefreshCommand}" ToolTip="Refresh (F5)" />
+                            <Button Content="Delete all" Click="DeleteAllClick" />
+                            <ToggleButton x:Name="SettingsToggle" Content="Settings" Padding="14,6" Margin="4" />
+                        </StackPanel>
+                        <TextBlock Text="Recent codes" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Settings panel -->
+                <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+                        BorderThickness="0,0,0,1" Padding="16,12"
+                        Visibility="{Binding IsChecked, ElementName=SettingsToggle, Converter={StaticResource Presence}}">
+                    <StackPanel>
+                        <CheckBox Content="Copy new codes to the clipboard automatically" IsChecked="{Binding AutoCopy}" Margin="0,3" />
+                        <CheckBox Content="Show a notification for new codes" IsChecked="{Binding Notify}" Margin="0,3" />
+                        <CheckBox Content="Start with Windows (in the notification area)" IsChecked="{Binding StartWithWindows}" Margin="0,3" />
+                        <StackPanel Orientation="Horizontal" Margin="-4,8,0,0">
+                            <Button Content="Remove sync key from this PC" Command="{Binding ForgetKeyCommand}" />
+                            <Button Content="Sign out" Command="{Binding SignOutCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+                        BorderThickness="0,1,0,0" Padding="12,6">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LastSync}" Foreground="{StaticResource Muted}" FontSize="12" />
+                        <TextBlock Text="{Binding Email}" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                </Border>
+
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" Margin="32"
+                                Visibility="{Binding Codes.Count, Converter={StaticResource Presence}, ConverterParameter=invert}">
+                        <TextBlock Style="{StaticResource Glyph}" Text="&#xE715;" />
+                        <TextBlock Style="{StaticResource Title}" Text="No codes yet" />
+                        <TextBlock Style="{StaticResource Body}"
+                                   Text="New verification codes from your phone appear here within a few seconds." />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Codes}" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Visibility="{Binding Codes.Count, Converter={StaticResource Presence}}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="6,8">
+                                    <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ReceivedAt, Converter={StaticResource Relative}}"
+                                                   Foreground="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Right" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Delete" Padding="8,3"
+                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Content="Copy" Padding="12,3" Style="{StaticResource Primary}"
+                                                    Command="{Binding DataContext.CopyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBox Text="{Binding Code, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                                 FontFamily="Cascadia Mono, Consolas" FontSize="24" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Sender}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Body}" Foreground="{StaticResource Muted}" FontSize="12"
+                                                   TextWrapping="Wrap" MaxHeight="34" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,6 @@
+{
+  "apiKey": "AIza...from Firebase project settings",
+  "projectId": "your-firebase-project-id",
+  "googleClientId": "1234567890-abc.apps.googleusercontent.com",
+  "googleClientSecret": "GOCSPX-...from the Desktop OAuth client"
+}

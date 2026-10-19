@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenMessages.Core/OpenMessages.Core.csproj" />
+    <Project Path="src/OpenMessages.Windows/OpenMessages.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpenMessages.Core.Tests/OpenMessages.Core.Tests.csproj" />
+  </Folder>
+</Solution>

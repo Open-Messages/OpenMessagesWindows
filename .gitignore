@@ -1,0 +1,15 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+firebase-config.json
+.DS_Store
+client_secret_*.json
+TestResults/
+
+# Code-signing certificates and secrets: never commit.
+*.pfx
+*.p12
+*.snk
+.env*
